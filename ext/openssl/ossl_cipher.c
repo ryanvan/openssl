@@ -104,7 +104,7 @@ ossl_cipher_alloc(VALUE klass)
  *  call-seq:
  *     Cipher.new(string) -> cipher
  *
- *  The string must contain a valid cipher name like "AES-256-CBC".
+ *  The string must be a valid cipher name like "AES-128-CBC" or "3DES".
  *
  *  A list of cipher names is available by calling OpenSSL::Cipher.ciphers.
  */
@@ -476,10 +476,10 @@ ossl_cipher_set_key(VALUE self, VALUE key)
 
     StringValue(key);
     GetCipher(self, ctx);
-
+    // EVP_CIPHER_CTX_key_length 函数返回EVP_CIPHER_CTX结构内部的算法的密钥长度
     key_len = EVP_CIPHER_CTX_key_length(ctx);
-    if (RSTRING_LEN(key) != key_len)
-	ossl_raise(rb_eArgError, "key must be %d bytes", key_len);
+    if (RSTRING_LEN(key) < key_len)
+	ossl_raise(rb_eArgError, "key length too short");
 
     if (EVP_CipherInit_ex(ctx, NULL, NULL, (unsigned char *)RSTRING_PTR(key), NULL, -1) != 1)
 	ossl_raise(eCipherError, NULL);
@@ -896,7 +896,7 @@ Init_ossl_cipher(void)
      * without processing the password further. A simple and secure way to
      * create a key for a particular Cipher is
      *
-     *  cipher = OpenSSL::Cipher::AES256.new(:CFB)
+     *  cipher = OpenSSL::AES256.new(:CFB)
      *  cipher.encrypt
      *  key = cipher.random_key # also sets the generated key on the Cipher
      *
